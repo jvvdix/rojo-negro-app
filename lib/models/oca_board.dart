@@ -40,7 +40,7 @@ List<GridPos> generateSpiralPositions({int cols = ocaBoardCols, int rows = ocaBo
   return positions;
 }
 
-enum OcaSquareType { normal, drink, goose, bridge, inn, well, labyrinth, jail, skull, goal }
+enum OcaSquareType { normal, drink, goose, bridge, inn, well, labyrinth, jail, skull, goal, finalDare }
 
 class OcaSquare {
   final int number;
@@ -62,6 +62,14 @@ class OcaSquare {
 
 const _geese = {5, 9, 14, 18, 23, 27, 32, 36, 41, 45, 50, 54, 59};
 const _drinks = {3, 11, 16, 21, 29, 38, 44, 48, 56};
+
+/// The 3 squares right before the goal: harder, spicier dares to raise the
+/// tension on the home stretch. Visually flagged in the board widget too.
+const _finalDares = {
+  60: 'RECTA FINAL 🔥 Reparte 3 tragos como quieras: puedes dártelos todos a ti o repartirlos entre el grupo.',
+  61: 'RECTA FINAL 🔥 El jugador de tu derecha te hace una pregunta comprometida. Respondes con la verdad o bebes 3 tragos.',
+  62: 'RECTA FINAL 🔥 Última prueba: mantén el contacto visual con quien tengas enfrente 30 segundos sin reírte. Si fallas, bebes todo lo que quede en tu vaso.',
+};
 
 OcaSquare _buildSquare(int n) {
   if (n == 6) {
@@ -124,6 +132,14 @@ OcaSquare _buildSquare(int n) {
       type: OcaSquareType.goal,
       emoji: '🏁',
       description: '¡Meta! Ganaste. Todos beben por ti.',
+    );
+  }
+  if (_finalDares.containsKey(n)) {
+    return OcaSquare(
+      number: n,
+      type: OcaSquareType.finalDare,
+      emoji: '🔥',
+      description: _finalDares[n]!,
     );
   }
   if (_geese.contains(n)) {

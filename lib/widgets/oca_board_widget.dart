@@ -57,6 +57,7 @@ class OcaBoardWidget extends StatelessWidget {
 
   Widget _cell(OcaSquare square, GridPos pos, double cellSize) {
     final isGoal = square.type == OcaSquareType.goal;
+    final isFinalDare = square.type == OcaSquareType.finalDare;
     final showEmoji = square.emoji.isNotEmpty;
     return Positioned(
       left: pos.col * cellSize,
@@ -67,9 +68,17 @@ class OcaBoardWidget extends StatelessWidget {
         padding: EdgeInsets.all(cellSize * 0.04),
         child: Container(
           decoration: BoxDecoration(
-            color: isGoal ? kGold.withValues(alpha: 0.18) : kSurface,
+            color: isGoal
+                ? kGold.withValues(alpha: 0.18)
+                : isFinalDare
+                    ? kOxblood.withValues(alpha: 0.32)
+                    : kSurface,
             borderRadius: BorderRadius.circular(cellSize * 0.16),
-            border: isGoal ? Border.all(color: kGold, width: 1.4) : null,
+            border: isGoal
+                ? Border.all(color: kGold, width: 1.4)
+                : isFinalDare
+                    ? Border.all(color: kOxblood, width: 1.4)
+                    : null,
           ),
           alignment: Alignment.center,
           child: showEmoji
