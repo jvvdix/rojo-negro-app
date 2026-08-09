@@ -2,14 +2,24 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../models/oca_board.dart';
 import '../models/oca_player.dart';
+import '../services/session_storage.dart';
 import '../widgets/dice_widget.dart';
 import '../widgets/oca_board_widget.dart';
 import '../widgets/primary_button.dart';
 
 class CalimochoScreen extends StatefulWidget {
   final List<OcaPlayer> players;
+  final int initialCurrentPlayerIndex;
+  final int? initialStuckAtWellIndex;
+  final int? initialWinnerIndex;
 
-  const CalimochoScreen({super.key, required this.players});
+  const CalimochoScreen({
+    super.key,
+    required this.players,
+    this.initialCurrentPlayerIndex = 0,
+    this.initialStuckAtWellIndex,
+    this.initialWinnerIndex,
+  });
 
   @override
   State<CalimochoScreen> createState() => _CalimochoScreenState();
@@ -17,8 +27,8 @@ class CalimochoScreen extends StatefulWidget {
 
 class _CalimochoScreenState extends State<CalimochoScreen> {
   late List<OcaPlayer> _players;
-  int _currentPlayerIndex = 0;
-  int? _stuckAtWellIndex;
+  late int _currentPlayerIndex;
+  late int? _stuckAtWellIndex;
   bool _busy = false;
   OcaPlayer? _winner;
 
@@ -26,6 +36,20 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
   void initState() {
     super.initState();
     _players = widget.players;
+    _currentPlayerIndex = widget.initialCurrentPlayerIndex;
+    _stuckAtWellIndex = widget.initialStuckAtWellIndex;
+    _winner = widget.initialWinnerIndex != null ? _players[widget.initialWinnerIndex!] : null;
+    _persist();
+  }
+
+  void _persist() {
+    SessionStorage.save({
+      'screen': 'calimochoPlay',
+      'players': _players.map((p) => p.toJson()).toList(),
+      'currentPlayerIndex': _currentPlayerIndex,
+      'stuckAtWellIndex': _stuckAtWellIndex,
+      'winnerIndex': _winner == null ? null : _players.indexOf(_winner!),
+    });
   }
 
   OcaPlayer get _current => _players[_currentPlayerIndex];
@@ -101,6 +125,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
         _winner = player;
         _busy = false;
       });
+      _persist();
       return;
     }
 
@@ -138,6 +163,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
     }
 
     setState(() => _busy = false);
+    _persist();
     _nextTurn();
   }
 
@@ -165,6 +191,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       await _showEvent('${player.name} sigue atascado en el Pozo. Bebe un trago.');
       if (!mounted) return;
       setState(() => _busy = false);
+      _persist();
       _nextTurn();
       return;
     }
@@ -175,6 +202,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       await _showEvent('${player.name} pierde este turno. Bebe.');
       if (!mounted) return;
       setState(() => _busy = false);
+      _persist();
       _nextTurn();
     }
   }
@@ -189,38 +217,49 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       _stuckAtWellIndex = null;
       _winner = null;
     });
+    _persist();
   }
 
   @override
   Widget build(BuildContext context) {
     final winner = _winner;
 
-    return Scaffold(
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) SessionStorage.clear();
+      },
+      child: Scaffold(
       appBar: AppBar(title: const Text('OCALIMOCHO')),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
-          child: Column(
-            children: [
-              _TurnBar(player: _current),
-              const SizedBox(height: 8),
-              Expanded(
-                child: OcaBoardWidget(players: _players, currentPlayerIndex: _currentPlayerIndex),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
+              child: Column(
+                children: [
+                  _TurnBar(player: _current),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: OcaBoardWidget(players: _players, currentPlayerIndex: _currentPlayerIndex),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: DiceWidget(enabled: !_busy && winner == null, onRolled: _onDiceRolled),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    winner == null ? 'Toca el dado para tirar' : '',
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Center(
-                child: DiceWidget(enabled: !_busy && winner == null, onRolled: _onDiceRolled),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                winner == null ? 'Toca el dado para tirar' : '',
-                style: const TextStyle(color: Colors.white60, fontSize: 12),
-              ),
-            ],
+            ),
           ),
         ),
       ),
       bottomSheet: winner == null ? null : _WinSheet(winner: winner, onPlayAgain: _playAgain),
+      ),
     );
   }
 }

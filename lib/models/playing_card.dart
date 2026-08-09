@@ -44,6 +44,11 @@ class PlayingCard {
         return '$rank';
     }
   }
+
+  Map<String, dynamic> toJson() => {'suit': suit.index, 'rank': rank};
+
+  static PlayingCard fromJson(Map<String, dynamic> json) =>
+      PlayingCard(suit: Suit.values[json['suit'] as int], rank: json['rank'] as int);
 }
 
 class Deck {
@@ -60,9 +65,15 @@ class Deck {
     return Deck._(cards);
   }
 
+  /// Rebuilds a deck from its exact remaining cards, in draw order, without
+  /// reshuffling — used to resume a session instead of starting over.
+  factory Deck.fromCards(List<PlayingCard> cards) => Deck._(List.of(cards));
+
   int get remaining => _cards.length;
 
   bool get isEmpty => _cards.isEmpty;
 
   PlayingCard draw() => _cards.removeLast();
+
+  List<Map<String, dynamic>> toJson() => _cards.map((c) => c.toJson()).toList();
 }

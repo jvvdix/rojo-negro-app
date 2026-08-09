@@ -2,12 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../main.dart';
 import '../models/playing_card.dart';
+import '../services/session_storage.dart';
 import '../widgets/playing_card_widget.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/tap_scale.dart';
 
+/// Snapshot of an in-progress Rojo/Negro session, restored after a refresh.
+class RojoNegroRestore {
+  final List<PlayingCard> remainingCards;
+  final PlayingCard currentCard;
+
+  const RojoNegroRestore({required this.remainingCards, required this.currentCard});
+
+  static RojoNegroRestore? fromJson(Map<String, dynamic> json) {
+    try {
+      final cards = (json['cards'] as List).cast<Map<String, dynamic>>().map(PlayingCard.fromJson).toList();
+      final current = PlayingCard.fromJson(json['current'] as Map<String, dynamic>);
+      return RojoNegroRestore(remainingCards: cards, currentCard: current);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 class RojoNegroScreen extends StatefulWidget {
-  const RojoNegroScreen({super.key});
+  final RojoNegroRestore? restore;
+
+  const RojoNegroScreen({super.key, this.restore});
 
   @override
   State<RojoNegroScreen> createState() => _RojoNegroScreenState();
@@ -25,8 +46,23 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
   @override
   void initState() {
     super.initState();
-    _deck = Deck.shuffled();
-    _currentCard = _deck.draw();
+    final restore = widget.restore;
+    if (restore != null) {
+      _deck = Deck.fromCards(restore.remainingCards);
+      _currentCard = restore.currentCard;
+    } else {
+      _deck = Deck.shuffled();
+      _currentCard = _deck.draw();
+    }
+    _persist();
+  }
+
+  void _persist() {
+    SessionStorage.save({
+      'screen': 'rojoNegro',
+      'cards': _deck.toJson(),
+      'current': _currentCard.toJson(),
+    });
   }
 
   void _nextCard() {
@@ -36,6 +72,7 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
       _currentCard = _deck.draw();
       _inputLocked = true;
     });
+    _persist();
     Future.delayed(_inputCooldown, () {
       if (!mounted) return;
       setState(() => _inputLocked = false);
@@ -48,50 +85,56 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
       _currentCard = _deck.draw();
       _inputLocked = false;
     });
+    _persist();
   }
 
   @override
   Widget build(BuildContext context) {
     final deckEmpty = _deck.isEmpty;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('ROJO O NEGRO')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            children: [
-              _StatusBar(remaining: _deck.remaining),
-              const SizedBox(height: 20),
-              Expanded(
-                child: Center(
-                  child: SizedBox(
-                    width: 240,
-                    child: TapScale(
-                      onTap: (deckEmpty || _inputLocked) ? null : _nextCard,
-                      pressedScale: 0.97,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 320),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (child, animation) => SlideTransition(
-                          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
-                          child: FadeTransition(opacity: animation, child: child),
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) SessionStorage.clear();
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('ROJO O NEGRO')),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              children: [
+                _StatusBar(remaining: _deck.remaining),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: Center(
+                    child: SizedBox(
+                      width: 240,
+                      child: TapScale(
+                        onTap: (deckEmpty || _inputLocked) ? null : _nextCard,
+                        pressedScale: 0.97,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 320),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder: (child, animation) => SlideTransition(
+                            position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
+                            child: FadeTransition(opacity: animation, child: child),
+                          ),
+                          child: CardFrontFace(key: ValueKey(_currentCard), card: _currentCard),
                         ),
-                        child: CardFrontFace(key: ValueKey(_currentCard), card: _currentCard),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                deckEmpty ? '¡Mazo agotado!' : 'Toca la carta para pasar a la siguiente',
-                style: const TextStyle(color: Colors.white60, fontSize: 12),
-              ),
-              const SizedBox(height: 16),
-              if (deckEmpty) PrimaryButton(label: 'EMPEZAR DE NUEVO', onTap: _reshuffle),
-            ],
+                const SizedBox(height: 16),
+                Text(
+                  deckEmpty ? '¡Mazo agotado!' : 'Toca la carta para pasar a la siguiente',
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                if (deckEmpty) PrimaryButton(label: 'EMPEZAR DE NUEVO', onTap: _reshuffle),
+              ],
+            ),
           ),
         ),
       ),

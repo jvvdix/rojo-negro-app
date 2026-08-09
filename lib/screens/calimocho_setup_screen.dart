@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../models/oca_player.dart';
+import '../services/session_storage.dart';
 import '../widgets/primary_button.dart';
 import 'calimocho_screen.dart';
 
 class CalimochoSetupScreen extends StatefulWidget {
-  const CalimochoSetupScreen({super.key});
+  final List<OcaPlayer>? restoredPlayers;
+
+  const CalimochoSetupScreen({super.key, this.restoredPlayers});
 
   @override
   State<CalimochoSetupScreen> createState() => _CalimochoSetupScreenState();
@@ -13,14 +16,28 @@ class CalimochoSetupScreen extends StatefulWidget {
 
 class _CalimochoSetupScreenState extends State<CalimochoSetupScreen> {
   final _controller = TextEditingController();
-  final List<OcaPlayer> _players = [];
+  late final List<OcaPlayer> _players;
 
   static const _maxPlayers = 8;
+
+  @override
+  void initState() {
+    super.initState();
+    _players = widget.restoredPlayers ?? [];
+    _persist();
+  }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _persist() {
+    SessionStorage.save({
+      'screen': 'calimochoSetup',
+      'players': _players.map((p) => p.toJson()).toList(),
+    });
   }
 
   void _addPlayer() {
@@ -30,11 +47,13 @@ class _CalimochoSetupScreenState extends State<CalimochoSetupScreen> {
       _players.add(OcaPlayer(name: name, color: ocaTokenColors[_players.length % ocaTokenColors.length]));
       _controller.clear();
     });
+    _persist();
     FocusScope.of(context).unfocus();
   }
 
   void _removePlayer(int index) {
     setState(() => _players.removeAt(index));
+    _persist();
   }
 
   void _start() {
@@ -54,9 +73,13 @@ class _CalimochoSetupScreenState extends State<CalimochoSetupScreen> {
   Widget build(BuildContext context) {
     final canAdd = _players.length < _maxPlayers;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('OCALIMOCHO')),
-      body: SafeArea(
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) SessionStorage.clear();
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('OCALIMOCHO')),
+        body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
           child: Column(
@@ -165,6 +188,7 @@ class _CalimochoSetupScreenState extends State<CalimochoSetupScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

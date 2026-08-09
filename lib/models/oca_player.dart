@@ -31,4 +31,18 @@ class OcaPlayer {
   String get initial => name.isNotEmpty ? name[0].toUpperCase() : '?';
 
   bool get hasWon => position == 63;
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'color': color.toARGB32(),
+    'position': position,
+    'skippedTurnsLeft': skippedTurnsLeft,
+  };
+
+  static OcaPlayer fromJson(Map<String, dynamic> json) => OcaPlayer(
+    name: json['name'] as String,
+    color: Color(json['color'] as int),
+    position: json['position'] as int,
+    skippedTurnsLeft: json['skippedTurnsLeft'] as int,
+  );
 }
