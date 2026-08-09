@@ -61,23 +61,36 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
     setState(() => _busy = true);
     final player = _current;
     final start = player.position;
-    final target = start + value;
+    final rawTarget = start + value;
 
-    if (target > 63) {
-      await _showEvent('Necesitas ${63 - start} o menos para llegar a la meta.');
+    if (rawTarget <= ocaBoardSquareCount) {
+      for (var s = start + 1; s <= rawTarget; s++) {
+        if (!mounted) return;
+        setState(() => player.position = s);
+        await Future.delayed(const Duration(milliseconds: 230));
+      }
       if (!mounted) return;
-      setState(() => _busy = false);
-      _nextTurn();
+      await _resolveSquare(player, rawTarget);
       return;
     }
 
-    for (var s = start + 1; s <= target; s++) {
+    // Overshoot: walk up to the goal, then bounce back off it.
+    final landing = reflectOcaPosition(start, value);
+    for (var s = start + 1; s <= ocaBoardSquareCount; s++) {
       if (!mounted) return;
       setState(() => player.position = s);
       await Future.delayed(const Duration(milliseconds: 230));
     }
     if (!mounted) return;
-    await _resolveSquare(player, target);
+    await _showEvent('¡Casi! Rebotas en la meta y retrocedes hasta la casilla $landing.');
+    if (!mounted) return;
+    for (var s = ocaBoardSquareCount - 1; s >= landing; s--) {
+      if (!mounted) return;
+      setState(() => player.position = s);
+      await Future.delayed(const Duration(milliseconds: 230));
+    }
+    if (!mounted) return;
+    await _resolveSquare(player, landing);
   }
 
   Future<void> _resolveSquare(OcaPlayer player, int squareNumber) async {

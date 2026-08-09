@@ -148,3 +148,18 @@ OcaSquare _buildSquare(int n) {
 final List<OcaSquare> ocaSquares = List.generate(ocaBoardSquareCount, (i) => _buildSquare(i + 1));
 
 OcaSquare ocaSquareAt(int number) => ocaSquares[number - 1];
+
+/// Resolves where a player lands after moving [steps] from [start].
+///
+/// The goal square acts as the only wall on the board: a move that would
+/// land past it bounces back by the overshoot instead of stopping there.
+/// There is no wall at square 1, so a landing below it (only reachable with
+/// a [steps] far larger than any die can produce) clamps to square 1 rather
+/// than reflecting again.
+int reflectOcaPosition(int start, int steps, {int boardSize = ocaBoardSquareCount}) {
+  final raw = start + steps;
+  if (raw <= boardSize) return raw;
+  final overshoot = raw - boardSize;
+  final bounced = boardSize - overshoot;
+  return bounced < 1 ? 1 : bounced;
+}
