@@ -83,14 +83,14 @@ class _DiceWidgetState extends State<DiceWidget> {
         onTap: widget.enabled ? _roll : null,
         pressedScale: 0.94,
         child: Container(
-          width: 80,
-          height: 80,
-          padding: const EdgeInsets.all(11),
+          width: 56,
+          height: 56,
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.45), blurRadius: 16, offset: const Offset(0, 6)),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.45), blurRadius: 14, offset: const Offset(0, 5)),
             ],
           ),
           child: Column(
@@ -102,8 +102,8 @@ class _DiceWidgetState extends State<DiceWidget> {
                   children: [
                     for (final on in row)
                       Container(
-                        width: 10,
-                        height: 10,
+                        width: 7,
+                        height: 7,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: on ? kTableBlack : Colors.transparent,

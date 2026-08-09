@@ -4,6 +4,16 @@ import '../main.dart';
 import '../models/oca_board.dart';
 import '../models/oca_player.dart';
 
+/// Real oca boards paint every space a bright, varied color regardless of
+/// what's on it — the icon carries the meaning, the color carries the life.
+/// Cycled by square number so neighboring tiles read as distinct.
+const _tileColors = [
+  Color(0xFFE0973D), // warm orange
+  Color(0xFF4A90D9), // sky blue
+  Color(0xFF5FA05A), // leaf green
+  Color(0xFF9C5FA0), // soft purple
+];
+
 class OcaBoardWidget extends StatelessWidget {
   final List<OcaPlayer> players;
   final int currentPlayerIndex;
@@ -148,18 +158,18 @@ class OcaBoardWidget extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isGoal
-              ? kGold.withValues(alpha: 0.22)
+              ? kGold
               : isFinalDare
-                  ? kOxblood.withValues(alpha: 0.36)
-                  : kSurfaceRaised,
+                  ? kOxblood
+                  : _tileColors[square.number % _tileColors.length],
           border: isGoal
-              ? Border.all(color: kGold, width: circleSize * 0.05)
+              ? Border.all(color: Colors.white, width: circleSize * 0.05)
               : isFinalDare
-                  ? Border.all(color: kOxblood, width: circleSize * 0.05)
-                  : Border.all(color: Colors.black.withValues(alpha: 0.25), width: 1),
+                  ? Border.all(color: Colors.white, width: circleSize * 0.05)
+                  : Border.all(color: Colors.white.withValues(alpha: 0.4), width: circleSize * 0.03),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
+              color: Colors.black.withValues(alpha: 0.4),
               blurRadius: circleSize * 0.12,
               offset: Offset(0, circleSize * 0.05),
             ),
@@ -167,13 +177,21 @@ class OcaBoardWidget extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: showEmoji
-            ? Text(square.emoji, style: TextStyle(fontSize: circleSize * 0.48))
+            // Force every icon to a solid white silhouette instead of its
+            // native emoji colors: some platforms render color emoji with
+            // washed-out/pale glyphs, and a flat white icon reads crisp on
+            // every tile color regardless.
+            ? ColorFiltered(
+                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                child: Text(square.emoji, style: TextStyle(fontSize: circleSize * 0.48)),
+              )
             : Text(
                 '${square.number}',
                 style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: circleSize * 0.32,
-                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  fontSize: circleSize * 0.34,
+                  fontWeight: FontWeight.w800,
+                  shadows: [Shadow(color: Colors.black.withValues(alpha: 0.55), blurRadius: circleSize * 0.1)],
                 ),
               ),
       ),
