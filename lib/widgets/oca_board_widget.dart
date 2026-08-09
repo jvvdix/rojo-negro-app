@@ -134,7 +134,7 @@ class OcaBoardWidget extends StatelessWidget {
               right: size * 0.14,
               child: Text('🌿', style: TextStyle(fontSize: size * 0.15)),
             ),
-            Text('🦢', style: TextStyle(fontSize: size * 0.42)),
+            Text('🍷', style: TextStyle(fontSize: size * 0.42)),
           ],
         ),
       ),
