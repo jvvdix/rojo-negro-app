@@ -1,0 +1,113 @@
+import 'package:flutter/material.dart';
+import '../main.dart';
+import '../models/playing_card.dart';
+import '../widgets/playing_card_widget.dart';
+import '../widgets/primary_button.dart';
+import '../widgets/tap_scale.dart';
+
+class RojoNegroScreen extends StatefulWidget {
+  const RojoNegroScreen({super.key});
+
+  @override
+  State<RojoNegroScreen> createState() => _RojoNegroScreenState();
+}
+
+class _RojoNegroScreenState extends State<RojoNegroScreen> {
+  late Deck _deck;
+  late PlayingCard _currentCard;
+
+  @override
+  void initState() {
+    super.initState();
+    _deck = Deck.shuffled();
+    _currentCard = _deck.draw();
+  }
+
+  void _nextCard() {
+    if (_deck.isEmpty) return;
+    setState(() {
+      _currentCard = _deck.draw();
+    });
+  }
+
+  void _reshuffle() {
+    setState(() {
+      _deck = Deck.shuffled();
+      _currentCard = _deck.draw();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final deckEmpty = _deck.isEmpty;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('ROJO O NEGRO')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          child: Column(
+            children: [
+              _StatusBar(remaining: _deck.remaining),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Center(
+                  child: SizedBox(
+                    width: 240,
+                    child: TapScale(
+                      onTap: deckEmpty ? null : _nextCard,
+                      pressedScale: 0.97,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 320),
+                        transitionBuilder: (child, animation) => SlideTransition(
+                          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
+                          child: FadeTransition(opacity: animation, child: child),
+                        ),
+                        child: CardFrontFace(key: ValueKey(_currentCard), card: _currentCard),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                deckEmpty ? '¡Mazo agotado!' : 'Toca la carta para pasar a la siguiente',
+                style: const TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              if (deckEmpty) PrimaryButton(label: 'EMPEZAR DE NUEVO', onTap: _reshuffle),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusBar extends StatelessWidget {
+  final int remaining;
+
+  const _StatusBar({required this.remaining});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'MAZO: $remaining',
+            style: const TextStyle(
+              color: Colors.white60,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
