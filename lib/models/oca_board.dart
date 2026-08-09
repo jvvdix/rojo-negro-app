@@ -1,6 +1,11 @@
-const ocaBoardCols = 7;
-const ocaBoardRows = 9;
-const ocaBoardSquareCount = ocaBoardCols * ocaBoardRows;
+/// A real "juego de la oca" board is a square track that hugs the outer
+/// edge and spirals inward, leaving a large open area in the middle for
+/// artwork. The grid is bigger than the square count on purpose: only the
+/// outer rings are ever visited, so [generateSpiralPositions] stops once it
+/// has placed [ocaBoardSquareCount] squares, leaving the untouched interior
+/// cells free for a decorative centerpiece.
+const ocaBoardGridSize = 9;
+const ocaBoardSquareCount = 63;
 
 class GridPos {
   final int col;
@@ -8,31 +13,30 @@ class GridPos {
   const GridPos(this.col, this.row);
 }
 
-/// Visitation order of a rectangular inward spiral, one entry per cell.
-/// Index 0 is the outer starting corner; the last index lands near the
-/// grid's geometric center.
-List<GridPos> generateSpiralPositions({int cols = ocaBoardCols, int rows = ocaBoardRows}) {
-  final positions = List<GridPos>.filled(cols * rows, const GridPos(0, 0));
-  var top = 0, bottom = rows - 1, left = 0, right = cols - 1;
-  var i = 0;
-  while (top <= bottom && left <= right) {
-    for (var c = left; c <= right; c++) {
-      positions[i++] = GridPos(c, top);
+/// Visitation order of a square inward spiral, stopping after [count]
+/// cells. Index 0 is the outer starting corner; later indices hug the
+/// edge of the grid and only reach inward once the outer rings are used up.
+List<GridPos> generateSpiralPositions({int gridSize = ocaBoardGridSize, int count = ocaBoardSquareCount}) {
+  final positions = <GridPos>[];
+  var top = 0, bottom = gridSize - 1, left = 0, right = gridSize - 1;
+  while (positions.length < count && top <= bottom && left <= right) {
+    for (var c = left; c <= right && positions.length < count; c++) {
+      positions.add(GridPos(c, top));
     }
     top++;
-    for (var r = top; r <= bottom; r++) {
-      positions[i++] = GridPos(right, r);
+    for (var r = top; r <= bottom && positions.length < count; r++) {
+      positions.add(GridPos(right, r));
     }
     right--;
     if (top <= bottom) {
-      for (var c = right; c >= left; c--) {
-        positions[i++] = GridPos(c, bottom);
+      for (var c = right; c >= left && positions.length < count; c--) {
+        positions.add(GridPos(c, bottom));
       }
       bottom--;
     }
     if (left <= right) {
-      for (var r = bottom; r >= top; r--) {
-        positions[i++] = GridPos(left, r);
+      for (var r = bottom; r >= top && positions.length < count; r--) {
+        positions.add(GridPos(left, r));
       }
       left++;
     }

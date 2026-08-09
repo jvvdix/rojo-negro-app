@@ -199,19 +199,19 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       appBar: AppBar(title: const Text('OCALIMOCHO')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+          padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
           child: Column(
             children: [
               _TurnBar(player: _current),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Expanded(
                 child: OcaBoardWidget(players: _players, currentPlayerIndex: _currentPlayerIndex),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Center(
                 child: DiceWidget(enabled: !_busy && winner == null, onRolled: _onDiceRolled),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 winner == null ? 'Toca el dado para tirar' : '',
                 style: const TextStyle(color: Colors.white60, fontSize: 12),

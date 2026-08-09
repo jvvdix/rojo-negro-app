@@ -10,20 +10,33 @@ class OcaBoardWidget extends StatelessWidget {
 
   const OcaBoardWidget({super.key, required this.players, required this.currentPlayerIndex});
 
-  static const _framePadding = 8.0;
+  static const _framePadding = 6.0;
 
   @override
   Widget build(BuildContext context) {
     final positions = generateSpiralPositions();
 
+    // The spiral only visits the outer rings of the grid; whatever cells it
+    // never reaches form the open area a real oca board fills with artwork.
+    final used = positions.map((p) => p.row * ocaBoardGridSize + p.col).toSet();
+    var minCol = ocaBoardGridSize, maxCol = -1, minRow = ocaBoardGridSize, maxRow = -1;
+    for (var r = 0; r < ocaBoardGridSize; r++) {
+      for (var c = 0; c < ocaBoardGridSize; c++) {
+        if (used.contains(r * ocaBoardGridSize + c)) continue;
+        if (c < minCol) minCol = c;
+        if (c > maxCol) maxCol = c;
+        if (r < minRow) minRow = r;
+        if (r > maxRow) maxRow = r;
+      }
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final cellSize = min(
-          (constraints.maxWidth - _framePadding * 2) / ocaBoardCols,
-          (constraints.maxHeight - _framePadding * 2) / ocaBoardRows,
+          (constraints.maxWidth - _framePadding * 2) / ocaBoardGridSize,
+          (constraints.maxHeight - _framePadding * 2) / ocaBoardGridSize,
         );
-        final boardWidth = cellSize * ocaBoardCols;
-        final boardHeight = cellSize * ocaBoardRows;
+        final boardSide = cellSize * ocaBoardGridSize;
 
         // Group players by square so shared squares can render a small cluster.
         final bySquare = <int, List<OcaPlayer>>{};
@@ -43,13 +56,20 @@ class OcaBoardWidget extends StatelessWidget {
               ],
             ),
             child: SizedBox(
-              width: boardWidth,
-              height: boardHeight,
+              width: boardSide,
+              height: boardSide,
               child: Stack(
                 children: [
                   Positioned.fill(
                     child: CustomPaint(painter: _OcaTrackPainter(positions: positions, cellSize: cellSize)),
                   ),
+                  if (maxCol >= minCol)
+                    _centerpiece(
+                      left: minCol * cellSize,
+                      top: minRow * cellSize,
+                      width: (maxCol - minCol + 1) * cellSize,
+                      height: (maxRow - minRow + 1) * cellSize,
+                    ),
                   for (var i = 0; i < ocaBoardSquareCount; i++)
                     _cell(ocaSquares[i], positions[i], cellSize),
                   for (final entry in bySquare.entries)
@@ -68,6 +88,46 @@ class OcaBoardWidget extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  /// The open middle a real oca board fills with a big illustration. Sized
+  /// to the actual unused cells left by the spiral, so it never overlaps a
+  /// square drawn on top of it.
+  Widget _centerpiece({required double left, required double top, required double width, required double height}) {
+    final size = min(width, height);
+    return Positioned(
+      left: left + (width - size) / 2,
+      top: top + (height - size) / 2,
+      width: size,
+      height: size,
+      child: Container(
+        margin: EdgeInsets.all(size * 0.06),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: [kSurfaceRaised, kSurface]),
+          border: Border.all(color: kGold.withValues(alpha: 0.35), width: size * 0.018),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: size * 0.08, offset: Offset(0, size * 0.03)),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+              top: size * 0.1,
+              left: size * 0.12,
+              child: Text('☀️', style: TextStyle(fontSize: size * 0.16)),
+            ),
+            Positioned(
+              bottom: size * 0.12,
+              right: size * 0.14,
+              child: Text('🌿', style: TextStyle(fontSize: size * 0.15)),
+            ),
+            Text('🦢', style: TextStyle(fontSize: size * 0.42)),
+          ],
+        ),
+      ),
     );
   }
 
