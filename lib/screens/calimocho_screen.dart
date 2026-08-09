@@ -145,6 +145,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       case OcaSquareType.normal:
       case OcaSquareType.drink:
       case OcaSquareType.goose:
+      case OcaSquareType.duel:
       case OcaSquareType.finalDare:
       case OcaSquareType.goal:
         break;
