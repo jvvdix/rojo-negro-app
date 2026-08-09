@@ -25,7 +25,7 @@ class _TapScaleState extends State<TapScale> with SingleTickerProviderStateMixin
   }
 
   void _release() {
-    _controller.animateTo(0, duration: const Duration(milliseconds: 320), curve: Curves.easeOutBack);
+    _controller.animateTo(0, duration: const Duration(milliseconds: 180), curve: Curves.easeOutCubic);
   }
 
   @override

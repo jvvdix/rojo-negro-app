@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../main.dart';
 import '../models/playing_card.dart';
 import '../widgets/playing_card_widget.dart';
@@ -30,6 +31,7 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
 
   void _nextCard() {
     if (_deck.isEmpty || _inputLocked) return;
+    HapticFeedback.selectionClick();
     setState(() {
       _currentCard = _deck.draw();
       _inputLocked = true;
@@ -56,7 +58,7 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
       appBar: AppBar(title: const Text('ROJO O NEGRO')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           child: Column(
             children: [
               _StatusBar(remaining: _deck.remaining),
@@ -70,6 +72,8 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
                       pressedScale: 0.97,
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 320),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
                         transitionBuilder: (child, animation) => SlideTransition(
                           position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
                           child: FadeTransition(opacity: animation, child: child),
@@ -83,7 +87,7 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
               const SizedBox(height: 16),
               Text(
                 deckEmpty ? '¡Mazo agotado!' : 'Toca la carta para pasar a la siguiente',
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
+                style: const TextStyle(color: Colors.white60, fontSize: 12),
               ),
               const SizedBox(height: 16),
               if (deckEmpty) PrimaryButton(label: 'EMPEZAR DE NUEVO', onTap: _reshuffle),

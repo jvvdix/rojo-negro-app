@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../main.dart';
 import 'tap_scale.dart';
 
@@ -69,6 +70,7 @@ class _DiceWidgetState extends State<DiceWidget> {
       _face = finalValue;
       _rolling = false;
     });
+    HapticFeedback.mediumImpact();
     widget.onRolled(finalValue);
   }
 

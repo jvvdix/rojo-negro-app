@@ -76,7 +76,7 @@ class _CalimochoSetupScreenState extends State<CalimochoSetupScreen> {
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: 'Nombre del jugador',
-                          hintStyle: const TextStyle(color: Colors.white38),
+                          hintStyle: const TextStyle(color: Colors.white60),
                           filled: true,
                           fillColor: kSurface,
                           border: OutlineInputBorder(
@@ -103,10 +103,25 @@ class _CalimochoSetupScreenState extends State<CalimochoSetupScreen> {
               Expanded(
                 child: _players.isEmpty
                     ? Center(
-                        child: Text(
-                          'Aún no hay jugadores.\n¡Añade al menos dos para empezar!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: kSurface,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Icon(Icons.groups_rounded, color: Colors.white38, size: 32),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Aún no hay jugadores.\n¡Añade al menos dos para empezar!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white60, height: 1.4),
+                            ),
+                          ],
                         ),
                       )
                     : ListView.separated(

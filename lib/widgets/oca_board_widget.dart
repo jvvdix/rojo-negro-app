@@ -86,7 +86,7 @@ class OcaBoardWidget extends StatelessWidget {
               : Text(
                   '${square.number}',
                   style: TextStyle(
-                    color: Colors.white38,
+                    color: Colors.white60,
                     fontSize: cellSize * 0.26,
                     fontWeight: FontWeight.w700,
                   ),
@@ -104,12 +104,12 @@ class OcaBoardWidget extends StatelessWidget {
     required int clusterSize,
     required bool isCurrent,
   }) {
-    final tokenSize = cellSize * 0.56;
-    final offsets = _clusterOffsets(clusterSize, cellSize);
+    final tokenSize = _tokenSize(clusterSize, cellSize);
+    final offsets = _clusterOffsets(clusterSize, tokenSize);
     final offset = offsets[clusterIndex];
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 260),
+      duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutQuad,
       left: pos.col * cellSize + cellSize / 2 - tokenSize / 2 + offset.dx,
       top: pos.row * cellSize + cellSize / 2 - tokenSize / 2 + offset.dy,
@@ -119,11 +119,21 @@ class OcaBoardWidget extends StatelessWidget {
     );
   }
 
-  List<Offset> _clusterOffsets(int count, double cellSize) {
+  /// Shrinks tokens as more players share a square so a crowded cell (well,
+  /// jail, or the final-stretch squares) stays readable instead of smearing
+  /// into one illegible blob.
+  double _tokenSize(int clusterSize, double cellSize) {
+    if (clusterSize <= 1) return cellSize * 0.56;
+    if (clusterSize == 2) return cellSize * 0.48;
+    if (clusterSize <= 4) return cellSize * 0.38;
+    return cellSize * 0.30;
+  }
+
+  List<Offset> _clusterOffsets(int count, double tokenSize) {
     if (count <= 1) return [Offset.zero];
-    final radius = cellSize * 0.16;
+    final radius = tokenSize * 0.62;
     return List.generate(count, (i) {
-      final angle = (2 * pi * i) / count;
+      final angle = (2 * pi * i) / count - pi / 2;
       return Offset(cos(angle) * radius, sin(angle) * radius);
     });
   }

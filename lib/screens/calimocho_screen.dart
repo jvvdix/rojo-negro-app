@@ -67,7 +67,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       for (var s = start + 1; s <= rawTarget; s++) {
         if (!mounted) return;
         setState(() => player.position = s);
-        await Future.delayed(const Duration(milliseconds: 230));
+        await Future.delayed(const Duration(milliseconds: 220));
       }
       if (!mounted) return;
       await _resolveSquare(player, rawTarget);
@@ -79,7 +79,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
     for (var s = start + 1; s <= ocaBoardSquareCount; s++) {
       if (!mounted) return;
       setState(() => player.position = s);
-      await Future.delayed(const Duration(milliseconds: 230));
+      await Future.delayed(const Duration(milliseconds: 220));
     }
     if (!mounted) return;
     await _showEvent('¡Casi! Rebotas en la meta y retrocedes hasta la casilla $landing.');
@@ -87,7 +87,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
     for (var s = ocaBoardSquareCount - 1; s >= landing; s--) {
       if (!mounted) return;
       setState(() => player.position = s);
-      await Future.delayed(const Duration(milliseconds: 230));
+      await Future.delayed(const Duration(milliseconds: 220));
     }
     if (!mounted) return;
     await _resolveSquare(player, landing);
@@ -199,7 +199,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       appBar: AppBar(title: const Text('OCALIMOCHO')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
           child: Column(
             children: [
               _TurnBar(player: _current),
@@ -214,7 +214,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
               const SizedBox(height: 10),
               Text(
                 winner == null ? 'Toca el dado para tirar' : '',
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
+                style: const TextStyle(color: Colors.white60, fontSize: 12),
               ),
             ],
           ),
