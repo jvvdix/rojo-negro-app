@@ -13,8 +13,13 @@ class RojoNegroScreen extends StatefulWidget {
 }
 
 class _RojoNegroScreenState extends State<RojoNegroScreen> {
+  // Matches the AnimatedSwitcher transition below so a new tap never lands
+  // mid-animation; keeps a fast double-tap from burning two cards at once.
+  static const _inputCooldown = Duration(milliseconds: 350);
+
   late Deck _deck;
   late PlayingCard _currentCard;
+  bool _inputLocked = false;
 
   @override
   void initState() {
@@ -24,9 +29,14 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
   }
 
   void _nextCard() {
-    if (_deck.isEmpty) return;
+    if (_deck.isEmpty || _inputLocked) return;
     setState(() {
       _currentCard = _deck.draw();
+      _inputLocked = true;
+    });
+    Future.delayed(_inputCooldown, () {
+      if (!mounted) return;
+      setState(() => _inputLocked = false);
     });
   }
 
@@ -34,6 +44,7 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
     setState(() {
       _deck = Deck.shuffled();
       _currentCard = _deck.draw();
+      _inputLocked = false;
     });
   }
 
@@ -55,7 +66,7 @@ class _RojoNegroScreenState extends State<RojoNegroScreen> {
                   child: SizedBox(
                     width: 240,
                     child: TapScale(
-                      onTap: deckEmpty ? null : _nextCard,
+                      onTap: (deckEmpty || _inputLocked) ? null : _nextCard,
                       pressedScale: 0.97,
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 320),
