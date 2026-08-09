@@ -55,7 +55,7 @@ class _CalimochoSetupScreenState extends State<CalimochoSetupScreen> {
     final canAdd = _players.length < _maxPlayers;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('CALIMOCHO')),
+      appBar: AppBar(title: const Text('OCALIMOCHO')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),

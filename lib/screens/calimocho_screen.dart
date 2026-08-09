@@ -182,7 +182,7 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
     final winner = _winner;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('CALIMOCHO')),
+      appBar: AppBar(title: const Text('OCALIMOCHO')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
