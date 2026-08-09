@@ -50,7 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (_) => CalimochoScreen(
               players: players,
               initialCurrentPlayerIndex: state['currentPlayerIndex'] as int? ?? 0,
-              initialStuckAtWellIndex: state['stuckAtWellIndex'] as int?,
               initialWinnerIndex: state['winnerIndex'] as int?,
             ),
           ),

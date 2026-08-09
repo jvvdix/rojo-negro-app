@@ -10,14 +10,12 @@ import '../widgets/primary_button.dart';
 class CalimochoScreen extends StatefulWidget {
   final List<OcaPlayer> players;
   final int initialCurrentPlayerIndex;
-  final int? initialStuckAtWellIndex;
   final int? initialWinnerIndex;
 
   const CalimochoScreen({
     super.key,
     required this.players,
     this.initialCurrentPlayerIndex = 0,
-    this.initialStuckAtWellIndex,
     this.initialWinnerIndex,
   });
 
@@ -28,7 +26,6 @@ class CalimochoScreen extends StatefulWidget {
 class _CalimochoScreenState extends State<CalimochoScreen> {
   late List<OcaPlayer> _players;
   late int _currentPlayerIndex;
-  late int? _stuckAtWellIndex;
   bool _busy = false;
   OcaPlayer? _winner;
 
@@ -37,7 +34,6 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
     super.initState();
     _players = widget.players;
     _currentPlayerIndex = widget.initialCurrentPlayerIndex;
-    _stuckAtWellIndex = widget.initialStuckAtWellIndex;
     _winner = widget.initialWinnerIndex != null ? _players[widget.initialWinnerIndex!] : null;
     _persist();
   }
@@ -47,7 +43,6 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       'screen': 'calimochoPlay',
       'players': _players.map((p) => p.toJson()).toList(),
       'currentPlayerIndex': _currentPlayerIndex,
-      'stuckAtWellIndex': _stuckAtWellIndex,
       'winnerIndex': _winner == null ? null : _players.indexOf(_winner!),
     });
   }
@@ -141,13 +136,6 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       case OcaSquareType.jail:
         player.skippedTurnsLeft = 2;
         break;
-      case OcaSquareType.well:
-        if (_stuckAtWellIndex == null) {
-          _stuckAtWellIndex = _players.indexOf(player);
-        } else {
-          _stuckAtWellIndex = null;
-        }
-        break;
       case OcaSquareType.bridge:
       case OcaSquareType.labyrinth:
       case OcaSquareType.skull:
@@ -186,16 +174,6 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
   Future<void> _resolveForcedSkip() async {
     final player = _current;
 
-    if (_currentPlayerIndex == _stuckAtWellIndex) {
-      setState(() => _busy = true);
-      await _showEvent('${player.name} sigue atascado en el Pozo. Bebe un trago.');
-      if (!mounted) return;
-      setState(() => _busy = false);
-      _persist();
-      _nextTurn();
-      return;
-    }
-
     if (player.skippedTurnsLeft > 0) {
       setState(() => _busy = true);
       player.skippedTurnsLeft--;
@@ -214,7 +192,6 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
         p.skippedTurnsLeft = 0;
       }
       _currentPlayerIndex = 0;
-      _stuckAtWellIndex = null;
       _winner = null;
     });
     _persist();

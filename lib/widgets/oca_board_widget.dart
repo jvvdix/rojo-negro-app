@@ -221,8 +221,8 @@ class OcaBoardWidget extends StatelessWidget {
     );
   }
 
-  /// Shrinks tokens as more players share a square so a crowded cell (well,
-  /// jail, or the final-stretch squares) stays readable instead of smearing
+  /// Shrinks tokens as more players share a square so a crowded cell (jail,
+  /// inn, or the final-stretch squares) stays readable instead of smearing
   /// into one illegible blob.
   double _tokenSize(int clusterSize, double cellSize) {
     if (clusterSize <= 1) return cellSize * 0.56;
