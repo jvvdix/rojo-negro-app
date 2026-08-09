@@ -115,26 +115,13 @@ class OcaBoardWidget extends StatelessWidget {
         margin: EdgeInsets.all(size * 0.06),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [kSurfaceRaised, kSurface]),
           border: Border.all(color: kGold.withValues(alpha: 0.35), width: size * 0.018),
+          image: const DecorationImage(
+            image: AssetImage('assets/images/kalimotxo_goose.png'),
+            fit: BoxFit.cover,
+          ),
           boxShadow: [
             BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: size * 0.08, offset: Offset(0, size * 0.03)),
-          ],
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned(
-              top: size * 0.1,
-              left: size * 0.12,
-              child: Text('☀️', style: TextStyle(fontSize: size * 0.16)),
-            ),
-            Positioned(
-              bottom: size * 0.12,
-              right: size * 0.14,
-              child: Text('🌿', style: TextStyle(fontSize: size * 0.15)),
-            ),
-            Text('🍷', style: TextStyle(fontSize: size * 0.42)),
           ],
         ),
       ),
