@@ -199,19 +199,19 @@ class _CalimochoScreenState extends State<CalimochoScreen> {
       appBar: AppBar(title: const Text('OCALIMOCHO')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
           child: Column(
             children: [
               _TurnBar(player: _current),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               Expanded(
                 child: OcaBoardWidget(players: _players, currentPlayerIndex: _currentPlayerIndex),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Center(
                 child: DiceWidget(enabled: !_busy && winner == null, onRolled: _onDiceRolled),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               Text(
                 winner == null ? 'Toca el dado para tirar' : '',
                 style: const TextStyle(color: Colors.white60, fontSize: 12),
@@ -233,7 +233,7 @@ class _TurnBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(16)),
       child: Row(
         children: [

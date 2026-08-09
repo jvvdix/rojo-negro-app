@@ -10,6 +10,8 @@ class OcaBoardWidget extends StatelessWidget {
 
   const OcaBoardWidget({super.key, required this.players, required this.currentPlayerIndex});
 
+  static const _framePadding = 8.0;
+
   @override
   Widget build(BuildContext context) {
     final positions = generateSpiralPositions();
@@ -17,8 +19,8 @@ class OcaBoardWidget extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cellSize = min(
-          constraints.maxWidth / ocaBoardCols,
-          constraints.maxHeight / ocaBoardRows,
+          (constraints.maxWidth - _framePadding * 2) / ocaBoardCols,
+          (constraints.maxHeight - _framePadding * 2) / ocaBoardRows,
         );
         final boardWidth = cellSize * ocaBoardCols;
         final boardHeight = cellSize * ocaBoardRows;
@@ -30,24 +32,38 @@ class OcaBoardWidget extends StatelessWidget {
         }
 
         return Center(
-          child: SizedBox(
-            width: boardWidth,
-            height: boardHeight,
-            child: Stack(
-              children: [
-                for (var i = 0; i < ocaBoardSquareCount; i++)
-                  _cell(ocaSquares[i], positions[i], cellSize),
-                for (final entry in bySquare.entries)
-                  for (var j = 0; j < entry.value.length; j++)
-                    _token(
-                      entry.value[j],
-                      positions[entry.value[j].position - 1],
-                      cellSize,
-                      clusterIndex: j,
-                      clusterSize: entry.value.length,
-                      isCurrent: players.indexOf(entry.value[j]) == currentPlayerIndex,
-                    ),
+          child: Container(
+            padding: const EdgeInsets.all(_framePadding),
+            decoration: BoxDecoration(
+              color: kSurface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: kGold.withValues(alpha: 0.28), width: 1.6),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
               ],
+            ),
+            child: SizedBox(
+              width: boardWidth,
+              height: boardHeight,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(painter: _OcaTrackPainter(positions: positions, cellSize: cellSize)),
+                  ),
+                  for (var i = 0; i < ocaBoardSquareCount; i++)
+                    _cell(ocaSquares[i], positions[i], cellSize),
+                  for (final entry in bySquare.entries)
+                    for (var j = 0; j < entry.value.length; j++)
+                      _token(
+                        entry.value[j],
+                        positions[entry.value[j].position - 1],
+                        cellSize,
+                        clusterIndex: j,
+                        clusterSize: entry.value.length,
+                        isCurrent: players.indexOf(entry.value[j]) == currentPlayerIndex,
+                      ),
+                ],
+              ),
             ),
           ),
         );
@@ -59,39 +75,47 @@ class OcaBoardWidget extends StatelessWidget {
     final isGoal = square.type == OcaSquareType.goal;
     final isFinalDare = square.type == OcaSquareType.finalDare;
     final showEmoji = square.emoji.isNotEmpty;
+    // Circular spaces sitting slightly inset from the cell grid so the track
+    // painted underneath shows through the gaps, like beads on a string.
+    final circleSize = cellSize * 0.82;
+
     return Positioned(
-      left: pos.col * cellSize,
-      top: pos.row * cellSize,
-      width: cellSize,
-      height: cellSize,
-      child: Padding(
-        padding: EdgeInsets.all(cellSize * 0.04),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isGoal
-                ? kGold.withValues(alpha: 0.18)
-                : isFinalDare
-                    ? kOxblood.withValues(alpha: 0.32)
-                    : kSurface,
-            borderRadius: BorderRadius.circular(cellSize * 0.16),
-            border: isGoal
-                ? Border.all(color: kGold, width: 1.4)
-                : isFinalDare
-                    ? Border.all(color: kOxblood, width: 1.4)
-                    : null,
-          ),
-          alignment: Alignment.center,
-          child: showEmoji
-              ? Text(square.emoji, style: TextStyle(fontSize: cellSize * 0.42))
-              : Text(
-                  '${square.number}',
-                  style: TextStyle(
-                    color: Colors.white60,
-                    fontSize: cellSize * 0.26,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+      left: pos.col * cellSize + (cellSize - circleSize) / 2,
+      top: pos.row * cellSize + (cellSize - circleSize) / 2,
+      width: circleSize,
+      height: circleSize,
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isGoal
+              ? kGold.withValues(alpha: 0.22)
+              : isFinalDare
+                  ? kOxblood.withValues(alpha: 0.36)
+                  : kSurfaceRaised,
+          border: isGoal
+              ? Border.all(color: kGold, width: circleSize * 0.05)
+              : isFinalDare
+                  ? Border.all(color: kOxblood, width: circleSize * 0.05)
+                  : Border.all(color: Colors.black.withValues(alpha: 0.25), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: circleSize * 0.12,
+              offset: Offset(0, circleSize * 0.05),
+            ),
+          ],
         ),
+        alignment: Alignment.center,
+        child: showEmoji
+            ? Text(square.emoji, style: TextStyle(fontSize: circleSize * 0.48))
+            : Text(
+                '${square.number}',
+                style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: circleSize * 0.32,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
     );
   }
@@ -137,6 +161,44 @@ class OcaBoardWidget extends StatelessWidget {
       return Offset(cos(angle) * radius, sin(angle) * radius);
     });
   }
+}
+
+/// Paints the connecting track through every square's center, in board
+/// order, so the spaces read as beads strung along one continuous path —
+/// the visual signature of a real "juego de la oca" board.
+class _OcaTrackPainter extends CustomPainter {
+  final List<GridPos> positions;
+  final double cellSize;
+
+  _OcaTrackPainter({required this.positions, required this.cellSize});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (positions.length < 2) return;
+    final paint = Paint()
+      ..color = kGold.withValues(alpha: 0.24)
+      ..strokeWidth = cellSize * 0.1
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    for (var i = 0; i < positions.length; i++) {
+      final center = Offset(
+        positions[i].col * cellSize + cellSize / 2,
+        positions[i].row * cellSize + cellSize / 2,
+      );
+      if (i == 0) {
+        path.moveTo(center.dx, center.dy);
+      } else {
+        path.lineTo(center.dx, center.dy);
+      }
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _OcaTrackPainter oldDelegate) => oldDelegate.cellSize != cellSize;
 }
 
 class _AnimatedToken extends StatefulWidget {
