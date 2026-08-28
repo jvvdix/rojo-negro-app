@@ -44,7 +44,7 @@ List<GridPos> generateSpiralPositions({int gridSize = ocaBoardGridSize, int coun
   return positions;
 }
 
-enum OcaSquareType { normal, drink, giveDrink, goose, bridge, inn, duel, labyrinth, jail, skull, goal, finalDare }
+enum OcaSquareType { normal, drink, giveDrink, goose, bridge, inn, duel, labyrinth, jail, skull, goal, finalDare, tongueTwister }
 
 class OcaSquare {
   final int number;
@@ -70,6 +70,17 @@ const _drinks = {3, 11, 16, 21, 29, 38, 44, 48, 56};
 /// Interspersed between the other special squares: instead of drinking
 /// yourself, you hand out 1 trago to whoever you want.
 const _gives = {2, 8, 13, 17, 22, 26, 33, 37, 43, 47, 51, 55};
+
+/// Interspersed between the other special squares: read the tongue-twister
+/// out loud, stumble and you drink. Each one gets its own trabalenguas.
+const _tongueTwisters = {
+  4: 'Tres tristes tigres tragaban trigo en un trigal.',
+  10: 'Pablito clavó un clavito, ¿qué clavito clavó Pablito?',
+  20: 'Como poco coco como, poco coco compro.',
+  30: 'El perro de San Roque no tiene rabo porque Ramón Ramírez se lo ha robado.',
+  40: 'Si Sansón no sazona su salsa con sal, le sale sosa la salsa a Sansón.',
+  49: 'El cielo está enladrillado, ¿quién lo desenladrillará? El desenladrillador que lo desenladrille, buen desenladrillador será.',
+};
 
 /// The 3 squares right before the goal: harder, spicier dares to raise the
 /// tension on the home stretch. Visually flagged in the board widget too.
@@ -164,6 +175,14 @@ OcaSquare _buildSquare(int n) {
       type: OcaSquareType.giveDrink,
       emoji: '🍻',
       description: 'Reparte 1 trago a quien quieras.',
+    );
+  }
+  if (_tongueTwisters.containsKey(n)) {
+    return OcaSquare(
+      number: n,
+      type: OcaSquareType.tongueTwister,
+      emoji: '👅',
+      description: 'Lee el siguiente trabalenguas. Si te trabas, bebes: "${_tongueTwisters[n]}"',
     );
   }
   if (_drinks.contains(n)) {
