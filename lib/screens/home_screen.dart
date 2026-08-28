@@ -3,9 +3,9 @@ import '../main.dart';
 import '../models/oca_player.dart';
 import '../services/session_storage.dart';
 import '../widgets/mode_card.dart';
-import '../widgets/coming_soon_sheet.dart';
 import 'calimocho_screen.dart';
 import 'calimocho_setup_screen.dart';
+import 'ringo_screen.dart';
 import 'rojo_negro_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -34,6 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
         final restore = RojoNegroRestore.fromJson(state);
         if (restore == null) return;
         Navigator.push(context, MaterialPageRoute(builder: (_) => RojoNegroScreen(restore: restore)));
+      case 'ringo':
+        final restore = RingoRestore.fromJson(state);
+        if (restore == null) return;
+        Navigator.push(context, MaterialPageRoute(builder: (_) => RingoScreen(restore: restore)));
       case 'calimochoSetup':
         final players = _playersFromJson(state['players']);
         if (players == null) return;
@@ -109,11 +113,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 16),
               ModeCard(
-                title: 'MODO 3',
-                subtitle: 'Nuevo modo de juego',
-                icon: Icons.emoji_events_rounded,
-                enabled: false,
-                onTap: () => showComingSoonSheet(context, 'Modo 3'),
+                title: 'RINGO',
+                subtitle: 'Ring of Fire: cada carta es un reto',
+                icon: Icons.local_fire_department_rounded,
+                gradient: const [kRed, kOxblood],
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RingoScreen()),
+                ),
               ),
             ],
           ),

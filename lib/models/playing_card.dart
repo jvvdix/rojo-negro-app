@@ -75,5 +75,18 @@ class Deck {
 
   PlayingCard draw() => _cards.removeLast();
 
+  /// The next [n] cards that would be drawn, without removing them — used to
+  /// render a face-down spread the player can choose from freely instead of
+  /// drawing strictly in order.
+  List<PlayingCard> peek(int n) => _cards.reversed.take(n).toList();
+
+  /// Draws a specific card out of the deck regardless of its position, since
+  /// the player picks which face-down card to flip rather than always the
+  /// top one. Each suit/rank combination is unique within a single deck.
+  PlayingCard drawCard(PlayingCard card) {
+    final index = _cards.indexWhere((c) => c.suit == card.suit && c.rank == card.rank);
+    return _cards.removeAt(index);
+  }
+
   List<Map<String, dynamic>> toJson() => _cards.map((c) => c.toJson()).toList();
 }
