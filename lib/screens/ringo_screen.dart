@@ -19,7 +19,10 @@ class RingoRestore {
 
   static RingoRestore? fromJson(Map<String, dynamic> json) {
     try {
-      final cards = (json['cards'] as List).cast<Map<String, dynamic>>().map(PlayingCard.fromJson).toList();
+      final cards = (json['cards'] as List)
+          .cast<Map<String, dynamic>>()
+          .map(PlayingCard.fromJson)
+          .toList();
       final kings = json['kingsDrawn'] as int? ?? 0;
       return RingoRestore(remainingCards: cards, kingsDrawn: kings);
     } catch (_) {
@@ -37,7 +40,8 @@ class RingoScreen extends StatefulWidget {
   State<RingoScreen> createState() => _RingoScreenState();
 }
 
-class _RingoScreenState extends State<RingoScreen> with SingleTickerProviderStateMixin {
+class _RingoScreenState extends State<RingoScreen>
+    with SingleTickerProviderStateMixin {
   static const _spreadSize = 7;
   static const _dismissCooldown = Duration(milliseconds: 260);
 
@@ -51,7 +55,10 @@ class _RingoScreenState extends State<RingoScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _flipController = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
     final restore = widget.restore;
     if (restore != null) {
       _deck = Deck.fromCards(restore.remainingCards);
@@ -124,6 +131,36 @@ class _RingoScreenState extends State<RingoScreen> with SingleTickerProviderStat
     _persist();
   }
 
+  Widget _buildStage(List<PlayingCard> spread, bool deckEmpty) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 280),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.92, end: 1).animate(animation),
+          child: child,
+        ),
+      ),
+      child: _revealedCard != null
+          ? _RevealPanel(
+              key: const ValueKey('reveal'),
+              card: _revealedCard!,
+              controller: _flipController,
+              isFourthKing: _isFourthKingMoment,
+              onTap: _dismissReveal,
+            )
+          : deckEmpty
+          ? const SizedBox(key: ValueKey('empty'))
+          : _FanSpread(
+              key: const ValueKey('fan'),
+              cards: spread,
+              onPick: _inputLocked ? null : _reveal,
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final spread = _deck.peek(_spreadSize);
@@ -136,55 +173,55 @@ class _RingoScreenState extends State<RingoScreen> with SingleTickerProviderStat
       child: Scaffold(
         appBar: AppBar(title: const Text('RINGO')),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: Column(
-              children: [
-                _StatusBar(remaining: _deck.remaining + (_revealedCard != null ? 1 : 0), kingsDrawn: _kingsDrawn),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: Center(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 280),
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeInCubic,
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: ScaleTransition(
-                          scale: Tween<double>(begin: 0.92, end: 1).animate(animation),
-                          child: child,
-                        ),
-                      ),
-                      child: _revealedCard != null
-                          ? _RevealPanel(
-                              key: const ValueKey('reveal'),
-                              card: _revealedCard!,
-                              controller: _flipController,
-                              isFourthKing: _isFourthKingMoment,
-                              onTap: _dismissReveal,
-                            )
-                          : deckEmpty
-                              ? const SizedBox(key: ValueKey('empty'))
-                              : _FanSpread(
-                                  key: const ValueKey('fan'),
-                                  cards: spread,
-                                  onPick: _inputLocked ? null : _reveal,
-                                ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: Column(
+                  children: [
+                    _StatusBar(
+                      remaining:
+                          _deck.remaining + (_revealedCard != null ? 1 : 0),
+                      kingsDrawn: _kingsDrawn,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  deckEmpty
-                      ? '¡Mazo agotado!'
-                      : _revealedCard != null
+                    const SizedBox(height: 20),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) =>
+                            SingleChildScrollView(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
+                                ),
+                                child: Center(
+                                  child: _buildStage(spread, deckEmpty),
+                                ),
+                              ),
+                            ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      deckEmpty
+                          ? '¡Mazo agotado!'
+                          : _revealedCard != null
                           ? 'Toca la carta para continuar'
                           : 'Elige una carta boca abajo para revelarla',
-                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (deckEmpty)
+                      PrimaryButton(
+                        label: 'EMPEZAR DE NUEVO',
+                        onTap: _reshuffle,
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                if (deckEmpty) PrimaryButton(label: 'EMPEZAR DE NUEVO', onTap: _reshuffle),
-              ],
+              ),
             ),
           ),
         ),
@@ -203,7 +240,10 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: kSurface,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -237,7 +277,9 @@ class _StatusBar extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: i < kingsDrawn ? kGold : kSurfaceRaised,
-                      border: i < kingsDrawn ? null : Border.all(color: Colors.white24, width: 1),
+                      border: i < kingsDrawn
+                          ? null
+                          : Border.all(color: Colors.white24, width: 1),
                     ),
                   ),
                 ),
@@ -267,14 +309,13 @@ class _FanSpread extends StatelessWidget {
       ..sort((a, b) => (b - mid).abs().compareTo((a - mid).abs()));
 
     return SizedBox(
-      height: 200,
+      height: 230,
       width: double.infinity,
       child: Stack(
         alignment: Alignment.bottomCenter,
         clipBehavior: Clip.none,
         children: [
-          for (final i in paintOrder)
-            _buildCard(i, count, mid, cards[i]),
+          for (final i in paintOrder) _buildCard(i, count, mid, cards[i]),
         ],
       ),
     );
@@ -283,8 +324,8 @@ class _FanSpread extends StatelessWidget {
   Widget _buildCard(int i, int count, double mid, PlayingCard card) {
     final d = i - mid;
     final angle = d * 0.15;
-    final dx = d * 36.0;
-    final dy = d * d * 3.0;
+    final dx = d * 44.0;
+    final dy = d * d * 3.5;
     return Positioned(
       bottom: -dy,
       child: Transform.translate(
@@ -294,7 +335,7 @@ class _FanSpread extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: SizedBox(
             key: ValueKey(card),
-            width: 78,
+            width: 96,
             child: TapScale(
               onTap: onPick == null ? null : () => onPick!(card),
               child: const CardBackWidget(),
@@ -333,7 +374,7 @@ class _RevealPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 200,
+            width: 220,
             child: AnimatedBuilder(
               animation: controller,
               builder: (context, _) {
@@ -348,7 +389,11 @@ class _RevealPanel extends StatelessWidget {
                         ? BoxDecoration(
                             shape: BoxShape.circle,
                             boxShadow: [
-                              BoxShadow(color: kGold.withValues(alpha: 0.35 * lift), blurRadius: 60, spreadRadius: 10),
+                              BoxShadow(
+                                color: kGold.withValues(alpha: 0.35 * lift),
+                                blurRadius: 60,
+                                spreadRadius: 10,
+                              ),
                             ],
                           )
                         : null,
@@ -357,7 +402,9 @@ class _RevealPanel extends StatelessWidget {
                       transform: Matrix4.identity()
                         ..setEntry(3, 2, 0.0012)
                         ..rotateY(displayAngle),
-                      child: showFront ? CardFrontFace(card: card) : const CardBackWidget(),
+                      child: showFront
+                          ? CardFrontFace(card: card)
+                          : const CardBackWidget(),
                     ),
                   ),
                 );
@@ -368,7 +415,10 @@ class _RevealPanel extends StatelessWidget {
           AnimatedBuilder(
             animation: controller,
             builder: (context, child) {
-              final opacity = ((controller.value - 0.55) / 0.45).clamp(0.0, 1.0);
+              final opacity = ((controller.value - 0.55) / 0.45).clamp(
+                0.0,
+                1.0,
+              );
               return Opacity(opacity: opacity, child: child);
             },
             child: Column(
@@ -391,7 +441,11 @@ class _RevealPanel extends StatelessWidget {
                   child: Text(
                     rule.description,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
                   ),
                 ),
               ],
