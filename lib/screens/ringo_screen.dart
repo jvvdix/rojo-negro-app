@@ -1,8 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 import '../main.dart';
 import '../models/playing_card.dart';
+import '../models/ringo_circle.dart';
 import '../models/ringo_rule.dart';
 import '../services/session_storage.dart';
 import '../widgets/card_back_widget.dart';
@@ -12,19 +14,26 @@ import '../widgets/tap_scale.dart';
 
 /// Snapshot of an in-progress Ringo session, restored after a refresh.
 class RingoRestore {
-  final List<PlayingCard> remainingCards;
+  final List<PlayingCard?> slots;
   final int kingsDrawn;
+  final bool circleBroken;
 
-  const RingoRestore({required this.remainingCards, required this.kingsDrawn});
+  const RingoRestore({
+    required this.slots,
+    required this.kingsDrawn,
+    required this.circleBroken,
+  });
 
   static RingoRestore? fromJson(Map<String, dynamic> json) {
     try {
-      final cards = (json['cards'] as List)
-          .cast<Map<String, dynamic>>()
-          .map(PlayingCard.fromJson)
-          .toList();
+      final slots = RingoCircle.slotsFromJson(json['slots'] as List);
       final kings = json['kingsDrawn'] as int? ?? 0;
-      return RingoRestore(remainingCards: cards, kingsDrawn: kings);
+      final broken = json['circleBroken'] as bool? ?? false;
+      return RingoRestore(
+        slots: slots,
+        kingsDrawn: kings,
+        circleBroken: broken,
+      );
     } catch (_) {
       return null;
     }
@@ -42,14 +51,14 @@ class RingoScreen extends StatefulWidget {
 
 class _RingoScreenState extends State<RingoScreen>
     with SingleTickerProviderStateMixin {
-  static const _spreadSize = 8;
   static const _dismissCooldown = Duration(milliseconds: 260);
 
-  late Deck _deck;
+  late RingoCircle _circle;
   late final AnimationController _flipController;
   int _kingsDrawn = 0;
+  bool _circleBroken = false;
   PlayingCard? _revealedCard;
-  bool _isFourthKingMoment = false;
+  RingoClimax? _climax;
   bool _inputLocked = false;
 
   @override
@@ -61,10 +70,11 @@ class _RingoScreenState extends State<RingoScreen>
     );
     final restore = widget.restore;
     if (restore != null) {
-      _deck = Deck.fromCards(restore.remainingCards);
+      _circle = RingoCircle.fromSlots(restore.slots);
       _kingsDrawn = restore.kingsDrawn;
+      _circleBroken = restore.circleBroken;
     } else {
-      _deck = Deck.shuffled();
+      _circle = RingoCircle.shuffled();
     }
     _persist();
   }
@@ -78,28 +88,37 @@ class _RingoScreenState extends State<RingoScreen>
   void _persist() {
     SessionStorage.save({
       'screen': 'ringo',
-      'cards': _deck.toJson(),
+      'slots': _circle.toJson(),
       'kingsDrawn': _kingsDrawn,
+      'circleBroken': _circleBroken,
     });
   }
 
-  void _reveal(PlayingCard card) {
+  void _reveal(int index) {
     if (_inputLocked) return;
     HapticFeedback.selectionClick();
+    final pick = _circle.drawAt(index);
+    final card = pick.card;
     final isKing = card.rank == 13;
     final newKingsDrawn = isKing ? _kingsDrawn + 1 : _kingsDrawn;
     final isFourthKing = isKing && newKingsDrawn == 4;
+    final breaksCircleNow = !_circleBroken && !isFourthKing && pick.brokeCircle;
+    final climax = isFourthKing
+        ? RingoClimax.king
+        : breaksCircleNow
+        ? RingoClimax.circleBroken
+        : null;
     setState(() {
-      _deck.drawCard(card);
       _kingsDrawn = newKingsDrawn;
       _revealedCard = card;
-      _isFourthKingMoment = isFourthKing;
+      _climax = climax;
+      if (breaksCircleNow) _circleBroken = true;
       _inputLocked = true;
     });
     _persist();
     _flipController.forward(from: 0).whenComplete(() {
       if (!mounted) return;
-      if (isFourthKing) HapticFeedback.heavyImpact();
+      if (climax != null) HapticFeedback.heavyImpact();
       setState(() => _inputLocked = false);
     });
   }
@@ -108,9 +127,9 @@ class _RingoScreenState extends State<RingoScreen>
     if (_inputLocked) return;
     HapticFeedback.selectionClick();
     setState(() {
-      if (_isFourthKingMoment) _kingsDrawn = 0;
+      if (_climax != null) _kingsDrawn = 0;
       _revealedCard = null;
-      _isFourthKingMoment = false;
+      _climax = null;
       _inputLocked = true;
     });
     _persist();
@@ -122,16 +141,17 @@ class _RingoScreenState extends State<RingoScreen>
 
   void _reshuffle() {
     setState(() {
-      _deck = Deck.shuffled();
+      _circle = RingoCircle.shuffled();
       _kingsDrawn = 0;
+      _circleBroken = false;
       _revealedCard = null;
-      _isFourthKingMoment = false;
+      _climax = null;
       _inputLocked = false;
     });
     _persist();
   }
 
-  Widget _buildStage(List<PlayingCard> spread, bool deckEmpty) {
+  Widget _buildStage(bool deckEmpty) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 280),
       switchInCurve: Curves.easeOutCubic,
@@ -148,14 +168,14 @@ class _RingoScreenState extends State<RingoScreen>
               key: const ValueKey('reveal'),
               card: _revealedCard!,
               controller: _flipController,
-              isFourthKing: _isFourthKingMoment,
+              climax: _climax,
               onTap: _dismissReveal,
             )
           : deckEmpty
           ? const SizedBox(key: ValueKey('empty'))
           : _CardRing(
               key: const ValueKey('ring'),
-              cards: spread,
+              slots: _circle.slots,
               onPick: _inputLocked ? null : _reveal,
             ),
     );
@@ -163,8 +183,7 @@ class _RingoScreenState extends State<RingoScreen>
 
   @override
   Widget build(BuildContext context) {
-    final spread = _deck.peek(_spreadSize);
-    final deckEmpty = _deck.isEmpty && _revealedCard == null;
+    final deckEmpty = _circle.isEmpty && _revealedCard == null;
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
@@ -181,8 +200,7 @@ class _RingoScreenState extends State<RingoScreen>
                 child: Column(
                   children: [
                     _StatusBar(
-                      remaining:
-                          _deck.remaining + (_revealedCard != null ? 1 : 0),
+                      remaining: _circle.remaining,
                       kingsDrawn: _kingsDrawn,
                     ),
                     const SizedBox(height: 20),
@@ -194,9 +212,7 @@ class _RingoScreenState extends State<RingoScreen>
                                 constraints: BoxConstraints(
                                   minHeight: constraints.maxHeight,
                                 ),
-                                child: Center(
-                                  child: _buildStage(spread, deckEmpty),
-                                ),
+                                child: Center(child: _buildStage(deckEmpty)),
                               ),
                             ),
                       ),
@@ -207,7 +223,8 @@ class _RingoScreenState extends State<RingoScreen>
                           ? '¡Mazo agotado!'
                           : _revealedCard != null
                           ? 'Toca la carta para continuar'
-                          : 'Elige una carta boca abajo para revelarla',
+                          : 'Arrastra para girar el círculo y elige una carta',
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white60,
                         fontSize: 12,
@@ -291,53 +308,99 @@ class _StatusBar extends StatelessWidget {
   }
 }
 
-/// The face-down deck laid out as a ring around the central glass — the
-/// classic Kings Cup table setup. The player is free to lift whichever card
-/// they want out of the circle.
-class _CardRing extends StatelessWidget {
-  static const _cardWidth = 68.0;
-  static const _maxDiameter = 320.0;
+/// The whole deck laid out once around the table, face down, like the real
+/// Kings Cup setup. Drag anywhere on the ring to spin it — a flick keeps
+/// spinning and settles like a real wheel — and tap any card to lift it.
+/// A picked card's slot stays behind as a visible gap instead of closing up.
+class _CardRing extends StatefulWidget {
+  static const _cardWidth = 40.0;
+  static const _maxDiameter = 340.0;
 
-  final List<PlayingCard> cards;
-  final ValueChanged<PlayingCard>? onPick;
+  final List<PlayingCard?> slots;
+  final ValueChanged<int>? onPick;
 
-  const _CardRing({super.key, required this.cards, required this.onPick});
+  const _CardRing({super.key, required this.slots, required this.onPick});
+
+  @override
+  State<_CardRing> createState() => _CardRingState();
+}
+
+class _CardRingState extends State<_CardRing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _spin;
+  double _radius = 120;
+
+  @override
+  void initState() {
+    super.initState();
+    _spin = AnimationController.unbounded(vsync: this)
+      ..addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _spin.dispose();
+    super.dispose();
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
+    _spin.stop();
+    _spin.value += details.delta.dx / _radius;
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    final angularVelocity = details.velocity.pixelsPerSecond.dx / _radius;
+    final sim = FrictionSimulation(0.06, _spin.value, angularVelocity);
+    _spin.animateWith(sim);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final count = cards.length;
+    final count = widget.slots.length;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final diameter = min(constraints.maxWidth, _maxDiameter);
-        final radius = diameter / 2 - 60;
-        return SizedBox(
-          width: diameter,
-          height: diameter,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              const _CentralGlass(),
-              for (var i = 0; i < count; i++)
-                _buildCard(i, count, radius, cards[i]),
-            ],
+        final diameter = min(constraints.maxWidth, _CardRing._maxDiameter);
+        _radius = diameter / 2 - 34;
+        return GestureDetector(
+          onPanUpdate: _onPanUpdate,
+          onPanEnd: _onPanEnd,
+          child: SizedBox(
+            width: diameter,
+            height: diameter,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const _CentralGlass(),
+                for (var i = 0; i < count; i++)
+                  _buildSlot(i, count, widget.slots[i]),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildCard(int i, int count, double radius, PlayingCard card) {
-    final angle = (i / count) * 2 * pi;
+  Widget _buildSlot(int i, int count, PlayingCard? card) {
+    final angle = (i / count) * 2 * pi + _spin.value;
     return Transform.translate(
-      offset: Offset(radius * sin(angle), -radius * cos(angle)),
+      offset: Offset(_radius * sin(angle), -_radius * cos(angle)),
       child: Transform.rotate(
         angle: angle,
         child: SizedBox(
-          key: ValueKey(card),
-          width: _cardWidth,
-          child: TapScale(
-            onTap: onPick == null ? null : () => onPick!(card),
-            child: const CardBackWidget(),
+          key: ValueKey('ringo-slot-$i'),
+          width: _CardRing._cardWidth,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 320),
+            child: card == null
+                ? const _EmptySocket(key: ValueKey('empty'))
+                : TapScale(
+                    key: const ValueKey('card'),
+                    onTap: widget.onPick == null
+                        ? null
+                        : () => widget.onPick!(i),
+                    child: const CardBackWidget(),
+                  ),
           ),
         ),
       ),
@@ -345,8 +408,27 @@ class _CardRing extends StatelessWidget {
   }
 }
 
+/// What a lifted card's slot looks like once it's gone: a faint outline of
+/// where a card used to sit, so the ring visibly thins out over a round.
+class _EmptySocket extends StatelessWidget {
+  const _EmptySocket({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 0.68,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white24, width: 1),
+        ),
+      ),
+    );
+  }
+}
+
 /// The central glass every King fills — the ring's fixed point, and the
-/// thing the 4th King finally empties.
+/// thing a 4th King, or a broken circle, finally empties.
 class _CentralGlass extends StatelessWidget {
   const _CentralGlass();
 
@@ -369,26 +451,27 @@ class _CentralGlass extends StatelessWidget {
   }
 }
 
-/// The lifted, flipped card together with its rule text. The 4th King gets a
-/// visibly bigger, gold-lit treatment — the one moment gold is allowed to
-/// take over the screen.
+/// The lifted, flipped card together with its rule text. A climax moment —
+/// the 4th King or a broken circle — gets a visibly bigger, gold-lit
+/// treatment, the one time gold is allowed to take over the screen.
 class _RevealPanel extends StatelessWidget {
   final PlayingCard card;
   final AnimationController controller;
-  final bool isFourthKing;
+  final RingoClimax? climax;
   final VoidCallback onTap;
 
   const _RevealPanel({
     super.key,
     required this.card,
     required this.controller,
-    required this.isFourthKing,
+    required this.climax,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final rule = ringoRuleFor(card, isFourthKing: isFourthKing);
+    final isClimax = climax != null;
+    final rule = isClimax ? ringoClimaxRule(climax!) : ringoRuleFor(card);
 
     return TapScale(
       onTap: onTap,
@@ -407,7 +490,7 @@ class _RevealPanel extends StatelessWidget {
                 return Transform.scale(
                   scale: 0.88 + 0.12 * lift,
                   child: Container(
-                    decoration: isFourthKing
+                    decoration: isClimax
                         ? BoxDecoration(
                             shape: BoxShape.circle,
                             boxShadow: [
@@ -450,9 +533,9 @@ class _RevealPanel extends StatelessWidget {
                   rule.headline,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontFamily: isFourthKing ? kFontDisplay : null,
-                    color: isFourthKing ? kGold : Colors.white,
-                    fontSize: isFourthKing ? 28 : 19,
+                    fontFamily: isClimax ? kFontDisplay : null,
+                    color: isClimax ? kGold : Colors.white,
+                    fontSize: isClimax ? 28 : 19,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.4,
                   ),

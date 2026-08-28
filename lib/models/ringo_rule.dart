@@ -29,11 +29,13 @@ const _rulesByRank = <int, RingoRule>{
   ),
   8: RingoRule(
     headline: 'COMPAÑERO',
-    description: 'Elige a alguien: beberá siempre que tú bebas el resto de la partida.',
+    description:
+        'Elige a alguien: beberá siempre que tú bebas el resto de la partida.',
   ),
   9: RingoRule(
     headline: 'RIMA',
-    description: 'Di una palabra. Por turnos, el resto debe rimar con ella; quien falle, bebe.',
+    description:
+        'Di una palabra. Por turnos, el resto debe rimar con ella; quien falle, bebe.',
   ),
   10: RingoRule(
     headline: 'CATEGORÍAS',
@@ -42,7 +44,8 @@ const _rulesByRank = <int, RingoRule>{
   ),
   11: RingoRule(
     headline: 'REGLA NUEVA',
-    description: 'Inventa una norma que todos deben cumplir el resto de la partida.',
+    description:
+        'Inventa una norma que todos deben cumplir el resto de la partida.',
   ),
   12: RingoRule(
     headline: 'PREGUNTAS',
@@ -54,14 +57,24 @@ const _rulesByRank = <int, RingoRule>{
   ),
 };
 
-const kingRuleFinal = RingoRule(
-  headline: '¡EL CUARTO REY!',
-  description: 'Bébete todo el contenido del vaso central.',
-);
+/// A "drink the whole central glass" climax, and what triggered it.
+enum RingoClimax { king, circleBroken }
 
-/// The rule for [card]. Pass [isFourthKing] when this King is the fourth one
-/// drawn since the central glass was last emptied.
-RingoRule ringoRuleFor(PlayingCard card, {bool isFourthKing = false}) {
-  if (card.rank == 13 && isFourthKing) return kingRuleFinal;
-  return _rulesByRank[card.rank]!;
-}
+const _climaxRules = <RingoClimax, RingoRule>{
+  RingoClimax.king: RingoRule(
+    headline: '¡EL CUARTO REY!',
+    description: 'Bébete todo el contenido del vaso central.',
+  ),
+  RingoClimax.circleBroken: RingoRule(
+    headline: '¡CÍRCULO ROTO!',
+    description:
+        'Has roto el círculo de cartas. Bébete todo el contenido del vaso central.',
+  ),
+};
+
+/// The normal rule for [card]'s rank.
+RingoRule ringoRuleFor(PlayingCard card) => _rulesByRank[card.rank]!;
+
+/// The rule for a central-glass climax moment, regardless of which card
+/// triggered it.
+RingoRule ringoClimaxRule(RingoClimax climax) => _climaxRules[climax]!;
