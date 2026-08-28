@@ -8,6 +8,6 @@ void main() {
 
     expect(find.text('ROJO O NEGRO'), findsOneWidget);
     expect(find.text('OCALIMOCHO'), findsOneWidget);
-    expect(find.text('MODO 3'), findsOneWidget);
+    expect(find.text('RINGO'), findsOneWidget);
   });
 }
