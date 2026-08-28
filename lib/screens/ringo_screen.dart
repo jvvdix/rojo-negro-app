@@ -128,7 +128,9 @@ class _RingoScreenState extends State<RingoScreen>
     HapticFeedback.selectionClick();
     final wasCircleBroken = _climax == RingoClimax.circleBroken;
     setState(() {
-      if (_climax != null) _kingsDrawn = 0;
+      // Only the 4th King resets the count — breaking the circle is its own
+      // separate reason to empty the glass and doesn't touch the Kings tally.
+      if (_climax == RingoClimax.king) _kingsDrawn = 0;
       // A broken circle empties the glass, then the remaining cards (not a
       // fresh deck) get gathered and reshuffled into a new, smaller, gap-free
       // circle — the game keeps going, and that circle can break again too.
