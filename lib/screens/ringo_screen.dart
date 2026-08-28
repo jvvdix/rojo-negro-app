@@ -126,8 +126,15 @@ class _RingoScreenState extends State<RingoScreen>
   void _dismissReveal() {
     if (_inputLocked) return;
     HapticFeedback.selectionClick();
+    final wasCircleBroken = _climax == RingoClimax.circleBroken;
     setState(() {
       if (_climax != null) _kingsDrawn = 0;
+      // A broken circle empties the glass and clears the table: deal a fresh
+      // circle so the same round can be broken again, again and again.
+      if (wasCircleBroken) {
+        _circle = RingoCircle.shuffled();
+        _circleBroken = false;
+      }
       _revealedCard = null;
       _climax = null;
       _inputLocked = true;
@@ -151,7 +158,7 @@ class _RingoScreenState extends State<RingoScreen>
     _persist();
   }
 
-  Widget _buildStage(bool deckEmpty) {
+  Widget _buildStage(bool deckEmpty, bool isWide) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 280),
       switchInCurve: Curves.easeOutCubic,
@@ -169,6 +176,7 @@ class _RingoScreenState extends State<RingoScreen>
               card: _revealedCard!,
               controller: _flipController,
               climax: _climax,
+              isWide: isWide,
               onTap: _dismissReveal,
             )
           : deckEmpty
@@ -176,6 +184,7 @@ class _RingoScreenState extends State<RingoScreen>
           : _CardRing(
               key: const ValueKey('ring'),
               slots: _circle.slots,
+              isWide: isWide,
               onPick: _inputLocked ? null : _reveal,
             ),
     );
@@ -184,6 +193,16 @@ class _RingoScreenState extends State<RingoScreen>
   @override
   Widget build(BuildContext context) {
     final deckEmpty = _circle.isEmpty && _revealedCard == null;
+    // Only the ring itself grows on a wide (desktop) window — the header and
+    // footer stay phone-width so they read the same everywhere.
+    final isWide = MediaQuery.sizeOf(context).width > 700;
+
+    Widget capped(Widget child) => Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: child,
+      ),
+    );
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
@@ -192,53 +211,47 @@ class _RingoScreenState extends State<RingoScreen>
       child: Scaffold(
         appBar: AppBar(title: const Text('RINGO')),
         body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                child: Column(
-                  children: [
-                    _StatusBar(
-                      remaining: _circle.remaining,
-                      kingsDrawn: _kingsDrawn,
-                    ),
-                    const SizedBox(height: 20),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) =>
-                            SingleChildScrollView(
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight: constraints.maxHeight,
-                                ),
-                                child: Center(child: _buildStage(deckEmpty)),
-                              ),
-                            ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      deckEmpty
-                          ? '¡Mazo agotado!'
-                          : _revealedCard != null
-                          ? 'Toca la carta para continuar'
-                          : 'Arrastra para girar el círculo y elige una carta',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (deckEmpty)
-                      PrimaryButton(
-                        label: 'EMPEZAR DE NUEVO',
-                        onTap: _reshuffle,
-                      ),
-                  ],
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              children: [
+                capped(
+                  _StatusBar(
+                    remaining: _circle.remaining,
+                    kingsDrawn: _kingsDrawn,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(child: _buildStage(deckEmpty, isWide)),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                capped(
+                  Text(
+                    deckEmpty
+                        ? '¡Mazo agotado!'
+                        : _revealedCard != null
+                        ? 'Toca la carta para continuar'
+                        : 'Arrastra para girar el círculo y elige una carta',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (deckEmpty)
+                  capped(
+                    PrimaryButton(label: 'EMPEZAR DE NUEVO', onTap: _reshuffle),
+                  ),
+              ],
             ),
           ),
         ),
@@ -313,13 +326,16 @@ class _StatusBar extends StatelessWidget {
 /// spinning and settles like a real wheel — and tap any card to lift it.
 /// A picked card's slot stays behind as a visible gap instead of closing up.
 class _CardRing extends StatefulWidget {
-  static const _cardWidth = 40.0;
-  static const _maxDiameter = 340.0;
-
   final List<PlayingCard?> slots;
+  final bool isWide;
   final ValueChanged<int>? onPick;
 
-  const _CardRing({super.key, required this.slots, required this.onPick});
+  const _CardRing({
+    super.key,
+    required this.slots,
+    required this.isWide,
+    required this.onPick,
+  });
 
   @override
   State<_CardRing> createState() => _CardRingState();
@@ -357,10 +373,13 @@ class _CardRingState extends State<_CardRing>
   @override
   Widget build(BuildContext context) {
     final count = widget.slots.length;
+    final maxDiameter = widget.isWide ? 560.0 : 340.0;
+    final cardWidth = widget.isWide ? 62.0 : 40.0;
+    final glassSize = widget.isWide ? 78.0 : 56.0;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final diameter = min(constraints.maxWidth, _CardRing._maxDiameter);
-        _radius = diameter / 2 - 34;
+        final diameter = min(constraints.maxWidth, maxDiameter);
+        _radius = diameter / 2 - cardWidth * 0.85;
         return GestureDetector(
           onPanUpdate: _onPanUpdate,
           onPanEnd: _onPanEnd,
@@ -370,9 +389,9 @@ class _CardRingState extends State<_CardRing>
             child: Stack(
               alignment: Alignment.center,
               children: [
-                const _CentralGlass(),
+                _CentralGlass(size: glassSize),
                 for (var i = 0; i < count; i++)
-                  _buildSlot(i, count, widget.slots[i]),
+                  _buildSlot(i, count, widget.slots[i], cardWidth),
               ],
             ),
           ),
@@ -381,7 +400,7 @@ class _CardRingState extends State<_CardRing>
     );
   }
 
-  Widget _buildSlot(int i, int count, PlayingCard? card) {
+  Widget _buildSlot(int i, int count, PlayingCard? card, double cardWidth) {
     final angle = (i / count) * 2 * pi + _spin.value;
     return Transform.translate(
       offset: Offset(_radius * sin(angle), -_radius * cos(angle)),
@@ -389,7 +408,7 @@ class _CardRingState extends State<_CardRing>
         angle: angle,
         child: SizedBox(
           key: ValueKey('ringo-slot-$i'),
-          width: _CardRing._cardWidth,
+          width: cardWidth,
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 320),
             child: card == null
@@ -417,10 +436,14 @@ class _EmptySocket extends StatelessWidget {
   Widget build(BuildContext context) {
     return AspectRatio(
       aspectRatio: 0.68,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white24, width: 1),
+      child: LayoutBuilder(
+        builder: (context, constraints) => DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(
+              (constraints.maxWidth * 0.12).clamp(4.0, 16.0),
+            ),
+            border: Border.all(color: Colors.white24, width: 1),
+          ),
         ),
       ),
     );
@@ -430,13 +453,15 @@ class _EmptySocket extends StatelessWidget {
 /// The central glass every King fills — the ring's fixed point, and the
 /// thing a 4th King, or a broken circle, finally empties.
 class _CentralGlass extends StatelessWidget {
-  const _CentralGlass();
+  final double size;
+
+  const _CentralGlass({required this.size});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 56,
-      height: 56,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: kSurface,
@@ -445,7 +470,7 @@ class _CentralGlass extends StatelessWidget {
       child: Icon(
         Icons.local_bar_rounded,
         color: kGold.withValues(alpha: 0.55),
-        size: 26,
+        size: size * 0.46,
       ),
     );
   }
@@ -458,6 +483,7 @@ class _RevealPanel extends StatelessWidget {
   final PlayingCard card;
   final AnimationController controller;
   final RingoClimax? climax;
+  final bool isWide;
   final VoidCallback onTap;
 
   const _RevealPanel({
@@ -465,6 +491,7 @@ class _RevealPanel extends StatelessWidget {
     required this.card,
     required this.controller,
     required this.climax,
+    required this.isWide,
     required this.onTap,
   });
 
@@ -479,7 +506,7 @@ class _RevealPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 220,
+            width: isWide ? 300 : 220,
             child: AnimatedBuilder(
               animation: controller,
               builder: (context, _) {
