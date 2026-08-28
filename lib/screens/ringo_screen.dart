@@ -129,10 +129,13 @@ class _RingoScreenState extends State<RingoScreen>
     final wasCircleBroken = _climax == RingoClimax.circleBroken;
     setState(() {
       if (_climax != null) _kingsDrawn = 0;
-      // A broken circle empties the glass and clears the table: deal a fresh
-      // circle so the same round can be broken again, again and again.
+      // A broken circle empties the glass, then the remaining cards (not a
+      // fresh deck) get gathered and reshuffled into a new, smaller, gap-free
+      // circle — the game keeps going, and that circle can break again too.
       if (wasCircleBroken) {
-        _circle = RingoCircle.shuffled();
+        final remaining = _circle.slots.whereType<PlayingCard>().toList()
+          ..shuffle();
+        _circle = RingoCircle.fromSlots(remaining);
         _circleBroken = false;
       }
       _revealedCard = null;
