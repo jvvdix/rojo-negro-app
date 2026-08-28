@@ -376,9 +376,9 @@ class _CardRingState extends State<_CardRing>
   @override
   Widget build(BuildContext context) {
     final count = widget.slots.length;
-    final maxDiameter = widget.isWide ? 560.0 : 340.0;
-    final cardWidth = widget.isWide ? 62.0 : 40.0;
-    final glassSize = widget.isWide ? 78.0 : 56.0;
+    final maxDiameter = widget.isWide ? 560.0 : 400.0;
+    final cardWidth = widget.isWide ? 62.0 : 50.0;
+    final glassSize = widget.isWide ? 78.0 : 62.0;
     return LayoutBuilder(
       builder: (context, constraints) {
         final diameter = min(constraints.maxWidth, maxDiameter);
@@ -509,7 +509,7 @@ class _RevealPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: isWide ? 300 : 220,
+            width: isWide ? 300 : 240,
             child: AnimatedBuilder(
               animation: controller,
               builder: (context, _) {
