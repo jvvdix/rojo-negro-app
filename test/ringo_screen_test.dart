@@ -98,8 +98,8 @@ void main() {
     await tester.tap(find.text('¡CÍRCULO ROTO!'));
     await tester.pumpAndSettle();
 
-    // Breaking the circle clears the table: a brand new full deck of 52 is
-    // dealt, ready to be broken again.
-    expect(find.text('MAZO: 52'), findsOneWidget);
+    // Breaking the circle doesn't restart the game: the 2 cards still left
+    // in play (not a fresh deck) get reshuffled into a new, gap-free circle.
+    expect(find.text('MAZO: 2'), findsOneWidget);
   });
 }
