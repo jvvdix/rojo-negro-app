@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:rojo_negro_app/main.dart';
 import 'package:rojo_negro_app/models/playing_card.dart';
 import 'package:rojo_negro_app/screens/ringo_screen.dart';
+
+/// Counts the lit ("gold") King-tracker dots in the status bar.
+int _litKingDots(WidgetTester tester) {
+  return tester
+      .widgetList<Container>(find.byType(Container))
+      .where(
+        (c) =>
+            c.decoration is BoxDecoration &&
+            (c.decoration as BoxDecoration).color == kGold,
+      )
+      .length;
+}
 
 void main() {
   testWidgets(
@@ -81,7 +94,7 @@ void main() {
         home: RingoScreen(
           restore: RingoRestore(
             slots: slots,
-            kingsDrawn: 0,
+            kingsDrawn: 2,
             circleBroken: false,
           ),
         ),
@@ -94,6 +107,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('¡CÍRCULO ROTO!'), findsOneWidget);
+    expect(_litKingDots(tester), 2);
 
     await tester.tap(find.text('¡CÍRCULO ROTO!'));
     await tester.pumpAndSettle();
@@ -101,5 +115,8 @@ void main() {
     // Breaking the circle doesn't restart the game: the 2 cards still left
     // in play (not a fresh deck) get reshuffled into a new, gap-free circle.
     expect(find.text('MAZO: 2'), findsOneWidget);
+    // And it's a separate reason to empty the glass — it doesn't touch the
+    // Kings tally the way the 4th King itself does.
+    expect(_litKingDots(tester), 2);
   });
 }
