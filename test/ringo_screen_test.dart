@@ -8,6 +8,13 @@ void main() {
   testWidgets(
     'Ringo levanta la carta elegida, muestra su regla y cuenta los reyes',
     (tester) async {
+      // A phone-sized viewport: the desktop-only bigger sizing is covered by
+      // its own layout, not by this interaction test.
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       const slots = <PlayingCard?>[
         PlayingCard(suit: Suit.spades, rank: 13),
         PlayingCard(suit: Suit.clubs, rank: 2),
@@ -57,6 +64,11 @@ void main() {
   testWidgets('Ringo declara el círculo roto al dejar dos huecos contiguos', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     const slots = <PlayingCard?>[
       PlayingCard(suit: Suit.clubs, rank: 2),
       null,
@@ -82,5 +94,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('¡CÍRCULO ROTO!'), findsOneWidget);
+
+    await tester.tap(find.text('¡CÍRCULO ROTO!'));
+    await tester.pumpAndSettle();
+
+    // Breaking the circle clears the table: a brand new full deck of 52 is
+    // dealt, ready to be broken again.
+    expect(find.text('MAZO: 52'), findsOneWidget);
   });
 }
