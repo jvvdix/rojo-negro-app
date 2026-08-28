@@ -42,7 +42,7 @@ class RingoScreen extends StatefulWidget {
 
 class _RingoScreenState extends State<RingoScreen>
     with SingleTickerProviderStateMixin {
-  static const _spreadSize = 7;
+  static const _spreadSize = 8;
   static const _dismissCooldown = Duration(milliseconds: 260);
 
   late Deck _deck;
@@ -153,8 +153,8 @@ class _RingoScreenState extends State<RingoScreen>
             )
           : deckEmpty
           ? const SizedBox(key: ValueKey('empty'))
-          : _FanSpread(
-              key: const ValueKey('fan'),
+          : _CardRing(
+              key: const ValueKey('ring'),
               cards: spread,
               onPick: _inputLocked ? null : _reveal,
             ),
@@ -291,57 +291,79 @@ class _StatusBar extends StatelessWidget {
   }
 }
 
-/// A face-down hand of the next cards to be drawn, splayed like a fan held in
-/// the hand. The player is free to lift whichever one they want.
-class _FanSpread extends StatelessWidget {
+/// The face-down deck laid out as a ring around the central glass — the
+/// classic Kings Cup table setup. The player is free to lift whichever card
+/// they want out of the circle.
+class _CardRing extends StatelessWidget {
+  static const _cardWidth = 68.0;
+  static const _maxDiameter = 320.0;
+
   final List<PlayingCard> cards;
   final ValueChanged<PlayingCard>? onPick;
 
-  const _FanSpread({super.key, required this.cards, required this.onPick});
+  const _CardRing({super.key, required this.cards, required this.onPick});
 
   @override
   Widget build(BuildContext context) {
     final count = cards.length;
-    final mid = (count - 1) / 2;
-    // Paint the outer cards first and the center-most card last (on top),
-    // like a real fanned hand held in front of you.
-    final paintOrder = List<int>.generate(count, (i) => i)
-      ..sort((a, b) => (b - mid).abs().compareTo((a - mid).abs()));
-
-    return SizedBox(
-      height: 230,
-      width: double.infinity,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
-        children: [
-          for (final i in paintOrder) _buildCard(i, count, mid, cards[i]),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final diameter = min(constraints.maxWidth, _maxDiameter);
+        final radius = diameter / 2 - 60;
+        return SizedBox(
+          width: diameter,
+          height: diameter,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const _CentralGlass(),
+              for (var i = 0; i < count; i++)
+                _buildCard(i, count, radius, cards[i]),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildCard(int i, int count, double mid, PlayingCard card) {
-    final d = i - mid;
-    final angle = d * 0.15;
-    final dx = d * 44.0;
-    final dy = d * d * 3.5;
-    return Positioned(
-      bottom: -dy,
-      child: Transform.translate(
-        offset: Offset(dx, 0),
-        child: Transform.rotate(
-          angle: angle,
-          alignment: Alignment.bottomCenter,
-          child: SizedBox(
-            key: ValueKey(card),
-            width: 96,
-            child: TapScale(
-              onTap: onPick == null ? null : () => onPick!(card),
-              child: const CardBackWidget(),
-            ),
+  Widget _buildCard(int i, int count, double radius, PlayingCard card) {
+    final angle = (i / count) * 2 * pi;
+    return Transform.translate(
+      offset: Offset(radius * sin(angle), -radius * cos(angle)),
+      child: Transform.rotate(
+        angle: angle,
+        child: SizedBox(
+          key: ValueKey(card),
+          width: _cardWidth,
+          child: TapScale(
+            onTap: onPick == null ? null : () => onPick!(card),
+            child: const CardBackWidget(),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The central glass every King fills — the ring's fixed point, and the
+/// thing the 4th King finally empties.
+class _CentralGlass extends StatelessWidget {
+  const _CentralGlass();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: kSurface,
+        border: Border.all(color: kGold.withValues(alpha: 0.35), width: 1.5),
+      ),
+      child: Icon(
+        Icons.local_bar_rounded,
+        color: kGold.withValues(alpha: 0.55),
+        size: 26,
       ),
     );
   }
