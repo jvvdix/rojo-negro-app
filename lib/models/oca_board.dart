@@ -155,7 +155,7 @@ OcaSquare _buildSquare(int n) {
       number: n,
       type: OcaSquareType.goose,
       emoji: '🦢',
-      description: '¡Oca! Manda a alguien a beber contigo.',
+      description: 'OCA: tu amigo y tú bebéis porque os toca!',
     );
   }
   if (_gives.contains(n)) {
