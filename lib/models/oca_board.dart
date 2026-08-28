@@ -44,7 +44,7 @@ List<GridPos> generateSpiralPositions({int gridSize = ocaBoardGridSize, int coun
   return positions;
 }
 
-enum OcaSquareType { normal, drink, goose, bridge, inn, duel, labyrinth, jail, skull, goal, finalDare }
+enum OcaSquareType { normal, drink, giveDrink, goose, bridge, inn, duel, labyrinth, jail, skull, goal, finalDare }
 
 class OcaSquare {
   final int number;
@@ -66,6 +66,10 @@ class OcaSquare {
 
 const _geese = {5, 9, 14, 18, 23, 27, 32, 36, 41, 45, 50, 54, 59};
 const _drinks = {3, 11, 16, 21, 29, 38, 44, 48, 56};
+
+/// Interspersed between the other special squares: instead of drinking
+/// yourself, you hand out 1 trago to whoever you want.
+const _gives = {2, 8, 13, 17, 22, 26, 33, 37, 43, 47, 51, 55};
 
 /// The 3 squares right before the goal: harder, spicier dares to raise the
 /// tension on the home stretch. Visually flagged in the board widget too.
@@ -151,7 +155,15 @@ OcaSquare _buildSquare(int n) {
       number: n,
       type: OcaSquareType.goose,
       emoji: '🦢',
-      description: '¡Oca! Elige a alguien para que beba.',
+      description: '¡Oca! Manda a alguien a beber contigo.',
+    );
+  }
+  if (_gives.contains(n)) {
+    return OcaSquare(
+      number: n,
+      type: OcaSquareType.giveDrink,
+      emoji: '🍻',
+      description: 'Reparte 1 trago a quien quieras.',
     );
   }
   if (_drinks.contains(n)) {
